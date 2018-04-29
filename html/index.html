@@ -1,0 +1,30 @@
+<html><head>
+<link type="text/css" rel="stylesheet"
+href="css/main.css" />
+</head>
+<body><h1>GCE Cloud Storage Application</h1>
+{% if user %}
+	{{user.nickname}}
+	[<a href="{{ logout }}"><b>sign out</b></a>]
+{% else %}
+	Please sign in:
+	[<a href="{{ login }}"><b>sign in</b></a>]
+{% endif %}
+
+<h2>Current files</h2>
+
+{% for file in files %}
+	<br>
+	<small>[<i>{{ file.date.ctime }}</i>]</small>
+	<b>
+	{% if file.author %}
+		<code>{{ file.author.nickname }}</code>
+	{% else %}
+		<i>anonymous</i>
+	{% endif %}
+	</b>
+	wrote:
+	{{ file.content|escape }}
+{% endfor %}
+
+<hr>
