@@ -1,30 +1,72 @@
 <html><head>
-<link type="text/css" rel="stylesheet"
-href="css/main.css" />
+	<link type="text/css" rel="stylesheet" href="css/main.css" />
+	<link type="text/css" rel="stylesheet" href="css/bootstrap.css" />
+	<link type="text/css" rel="stylesheet" href="css/bootstrap-responsive.css" />
+	<style type="text/css">
+	body {
+		padding-top: 40px;
+		padding-bottom: 40px;
+		background-color: #f7e3f6;
+	}
+	blockquote {
+		margin-bottom: 10px;
+		border-left-color: #bbb;
+	}
+	form {
+		margin-top: 10px;
+	}
+	.form-signin input[type="text"] {
+		font-size: 16px;
+		height: auto;
+		margin-bottom: 15px;
+		padding: 7px 9px;
+	}
+	.row {
+		margin-left: 0px;
+		margin-top: 10px;
+		overflow: scroll;
+	}
+</style>
 </head>
-<body><h1>GCE Cloud Storage Application</h1>
-{% if user %}
-	{{user.nickname}}
-	[<a href="{{ logout }}"><b>sign out</b></a>]
-{% else %}
-	Please sign in:
-	[<a href="{{ login }}"><b>sign in</b></a>]
-{% endif %}
+<body>
+	<div class="navbar navbar-inverse navbar-fixed-top">
+		<div class="navbar-inner">
+			<div class="container">
+				<button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="brand" href="#">GCE Cloud Storage Application</a>
+			</div>
+		</div>
+	</div>
 
-<h2>Current files</h2>
 
-{% for file in files %}
-	<br>
-	<small>[<i>{{ file.date.ctime }}</i>]</small>
-	<b>
-	{% if file.author %}
-		<code>{{ file.author.nickname }}</code>
-	{% else %}
-		<i>anonymous</i>
-	{% endif %}
-	</b>
-	wrote:
-	{{ file.content|escape }}
-{% endfor %}
 
-<hr>
+	<div class="container">
+		<!-- [START greetings] -->
+		{% if user %}
+		{{user.nickname}}
+		[<a href="{{ logout }}"><b>sign out</b></a>]
+		{% else %}
+		Please sign in:
+		[<a href="{{ login }}"><b>sign in</b></a>]
+		{% endif %}
+
+		<h3>Current files</h3>
+		<div class="row">
+			{% for file in files %}
+			<br>
+			<small>[<i>{{ file.date.ctime }}</i>]</small>
+			<b>
+				{% if file.author %}
+				<code>{{ file.author.nickname }}</code>
+				{% else %}
+				<i>anonymous</i>
+				{% endif %}
+			</b>
+			{{ file.content|escape }}
+			{% endfor %}
+		</div>
+

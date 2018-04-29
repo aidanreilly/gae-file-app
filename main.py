@@ -1,14 +1,17 @@
 #Simple GCE app to handle files on Google cloud storage 
 #
 #note to self: try out some of the other demos blob, guestbook etc.
-#C:\git\appengine-guestbook-python has the info on css fixup
 #C:\git\python-docs-samples\appengine\standard\blobstore\api for file uploads
+#for reading the store, 
 #to deploy gcloud app deploy app.yaml
 #datastore (relational db) and cloudstore (for actual files)
 #
 #[START imports]
 from google.appengine.ext import db
+from google.appengine.ext import blobstore
+from google.appengine.ext import ndb
 from google.appengine.ext.webapp import template
+from google.appengine.ext.webapp import blobstore_handlers
 from google.appengine.api import users
 from google.appengine.api import app_identity
 import webapp2
@@ -28,50 +31,94 @@ my_default_retry_params = gcs.RetryParams(initial_delay=0.2,
 gcs.set_default_retry_params(my_default_retry_params)
 #[END retries]
 
-class File(db.Model):
-    author = db.StringProperty(multiline=True)
-    content = db.BlobProperty()
-    fileObj = db.BlobProperty()
-    date = db.DateTimeProperty(auto_now_add = True)
+# This datastore model keeps track of which users uploaded which photos.
+class UserFile(ndb.Model):
+    user = ndb.StringProperty()
+    blob_key = ndb.BlobKeyProperty()
 
 class MainPage(webapp2.RequestHandler):
-  def get(self):
-    user = users.get_current_user()
-    files = File.all().order("-date").fetch(10)
-    context = {
-      'user': user,
-      'files':  files,
-      'login':  users.create_login_url(self.request.uri),
-      'logout': users.create_logout_url(self.request.uri),
-      }
-    # [START form]
- 
-    tmpl = path.join( path.dirname(__file__), "html/index.html" )
-    self.response.out.write( template.render(tmpl, context) )
-    self.response.write('\n\n')
-    self.response.out.write("""
-      <form action="/upload?%s"
-            enctype="multipart/form-data"
-            method="post">
-        <div><label>File upload:</label></div>
-        <div><input type="file" name="content"/></div>
-        <div><input type="submit" name="Upload"/></div>
-      </form>
-      <hr>""")
-    tmpl = path.join( path.dirname(__file__), "html/footer.html" )
+    def get(self):
+        bucket_name = os.environ.get('BUCKET_NAME', app_identity.get_default_gcs_bucket_name())
+        bucket = '/' + bucket_name
+        # [START upload_url]
+        upload_url = blobstore.create_upload_url('/upload_file')
+        # [END upload_url]
+        user = users.get_current_user()
+        #how can i query the db and return list?
+        #files = UserFile.list()
+        #how do I display a clickable list of objects? 
+        #files = UserFile("-date").fetch(10)
+        context = {
+          'user': user,
+          #'files':  files,
+          'login':  users.create_login_url(self.request.uri),
+          'logout': users.create_logout_url(self.request.uri),
+          }
+
+        #how to return the objects in the store???
+        #show the contents of the bucket
+        #self.list_bucket(bucket)
+        #end show contents
+
+        tmpl = path.join( path.dirname(__file__), "html/index.html" )
+        self.response.out.write( template.render(tmpl, context) )
+        self.response.write('\n\n')
+        # To upload files to the blobstore, the request method must be "POST"
+        # and enctype must be set to "multipart/form-data".
+        self.response.out.write("""
+            <html><body>
+            <form action="{0}" method="POST" enctype="multipart/form-data">
+              Upload File: <input type="file" name="file"><br>
+              <input type="submit" name="submit" value="Submit">
+            </form>
+            </body></html>""".format(upload_url))
+            # [END upload_form]
+        tmpl = path.join( path.dirname(__file__), "html/footer.html" )
+
+    #[START list_bucket]
+    def list_bucket(self, bucket):
+        self.response.write('Listbucket result:\n')
+        page_size = 1
+        stats = gcs.listbucket(bucket, max_keys=page_size)
+        while True:
+            count = 0
+            for stat in stats:
+                count += 1
+                self.response.write(repr(stat))
+                self.response.write('\n')
+            if count != page_size or count == 0:
+                break
+                stats = gcs.listbucket(bucket, max_keys=page_size, marker=stat.filename)
+    #[END list_bucket]
+
 # [END form] 
 
+# [START upload_handler]
+class FileUploadHandler(blobstore_handlers.BlobstoreUploadHandler):
+    def post(self):
+        upload = self.get_uploads()[0]
+        user_file = UserFile(
+            user=users.get_current_user().user_id(),
+            blob_key=upload.key())
+        #name the file in the blobstore
+        user_file.put()
 
-class Upload(webapp2.RequestHandler):
-  #this class has a function to post the file to the store from the method=post declation above
-  def post(self):
-    file = File()
-    user = users.get_current_user()
-    if user:
-      file.author = user
-    file.content = self.request.get("content")
-    file.put()                                 
-    #self.response.write("<p>You uploaded:</p> %s" % self.request.get("content")
-    #self.redirect("/")
+        #redirect back somewhere...
+        self.redirect('/download/%s' % upload.key())        
 
-app = webapp2.WSGIApplication([ ('/', MainPage), ('/upload', Upload) ], debug=True)
+
+# [START download_handler]
+class FileDownloadHandler(blobstore_handlers.BlobstoreDownloadHandler):
+    def get(self, file_key):
+        if not blobstore.get(file_key):
+            self.error(404)
+        else:
+            self.send_blob(file_key)
+# [END download_handler]
+
+        
+app = webapp2.WSGIApplication([ 
+    ('/', MainPage), 
+    ('/upload', FileUploadHandler),
+    ('/download/([^/]+)?', FileDownloadHandler)
+], debug=True)
