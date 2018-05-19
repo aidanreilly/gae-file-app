@@ -104,7 +104,7 @@ class FileUploadHandler(blobstore_handlers.BlobstoreUploadHandler):
         user_file.put()
 
         #redirect back somewhere...
-        self.redirect('/download/%s' % upload.key())        
+        self.redirect('/' % upload.key())        
 
 
 # [START download_handler]

@@ -15,5 +15,31 @@ https://cloud.google.com/appengine/docs/python/googlecloudstorageclient/getstart
 
 #Requirements
 * Apply CSS to somethings on the files page
-* README file which descrbies how to run/install. Also detail known bugs/limitations. 
-* .appspot.com URL: 
+* README file which describes how to run/install. Also detail known bugs/limitations. 
+* .appspot.com URL: https://gae-file-app.appspot.com/
+
+#Bugs
+
+Run locally:
+    
+    dev_appserver.py app.yaml
+
+Clear the local datastore
+    
+    dev_appserver.py --clear_datastore=yes app.yaml
+
+To deploy
+
+    gcloud app deploy app.yaml --project gae-file-app
+
+To remove an app (and project)
+
+    IAM & Admin --> Settings --> Shut Down
+
+Run locally
+    
+    dev_appserver.py app.yaml --enable_console
+
+Set up storage and run main.py
+
+    dev_appserver.py --default_gcs_bucket_name gae-file-app.appspot.com app.yaml --enable_console
