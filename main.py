@@ -38,7 +38,7 @@ class UserFile(ndb.Model):
 
 class MainPage(webapp2.RequestHandler):
     def get(self):
-        bucket_name = os.environ.get('BUCKET_NAME', app_identity.get_default_gcs_bucket_name())
+        bucket_name = os.environ.get('gae-file-app.appspot.com', app_identity.get_default_gcs_bucket_name())
         bucket = '/' + bucket_name
         # [START upload_url]
         upload_url = blobstore.create_upload_url('/upload_file')
@@ -55,13 +55,12 @@ class MainPage(webapp2.RequestHandler):
           'logout': users.create_logout_url(self.request.uri),
           }
 
-        #how to return the objects in the store???
-        #show the contents of the bucket
-        #self.list_bucket(bucket)
-        #end show contents
-
         tmpl = path.join( path.dirname(__file__), "html/index.html" )
         self.response.out.write( template.render(tmpl, context) )
+        #how to return the objects in the store???
+        #show the contents of the bucket
+        self.list_bucket(bucket)
+        #end show contents
         self.response.write('\n\n')
         # To upload files to the blobstore, the request method must be "POST"
         # and enctype must be set to "multipart/form-data".
@@ -96,24 +95,22 @@ class MainPage(webapp2.RequestHandler):
 # [START upload_handler]
 class FileUploadHandler(blobstore_handlers.BlobstoreUploadHandler):
     def post(self):
-        upload = self.get_uploads()[0]
-        user_file = UserFile(
-            user=users.get_current_user().user_id(),
-            blob_key=upload.key())
-        #name the file in the blobstore
-        user_file.put()
-
-        #redirect back somewhere...
-        self.redirect('/' % upload.key())        
-
-
+        user=users.get_current_user().user_id()
+        if user:
+            files = FileInfo.all()
+            html = html + template.render('html/index.html', {'file':file.blob, 'key':file.blob.key()})
+            upload_url = blobstore.create_upload_url('/upload')
+            html = html + template.render('html/footer.html', {'upload_url':upload_url})
+            self.redirect(users.create_login_url(self.request.uri))
+    
 # [START download_handler]
 class FileDownloadHandler(blobstore_handlers.BlobstoreDownloadHandler):
-    def get(self, file_key):
-        if not blobstore.get(file_key):
-            self.error(404)
-        else:
-            self.send_blob(file_key)
+    def get(self):
+        dl = self.request.get_all('UserFile')
+        for blob in dl:
+            blob_url = str(urllib.unquote(blob))
+            blob_info = blobstore.BlobInfo.get(blob_url)
+            self.send_blob(blob_info, save_as=blob_info.filename)
 # [END download_handler]
 
         
