@@ -76,7 +76,7 @@ class MainPage(webapp2.RequestHandler):
 
     #[START list_bucket]
     def list_bucket(self, bucket):
-        self.response.write('Listbucket result:\n')
+        #self.response.write('Listbucket result:\n')
         page_size = 1
         stats = gcs.listbucket(bucket, max_keys=page_size)
         while True:
@@ -106,7 +106,7 @@ class FileUploadHandler(blobstore_handlers.BlobstoreUploadHandler):
 # [START download_handler]
 class FileDownloadHandler(blobstore_handlers.BlobstoreDownloadHandler):
     def get(self):
-        dl = self.request.get_all('UserFile')
+        dl = self.request.get_all('file')
         for blob in dl:
             blob_url = str(urllib.unquote(blob))
             blob_info = blobstore.BlobInfo.get(blob_url)
