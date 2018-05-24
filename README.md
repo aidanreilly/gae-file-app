@@ -2,9 +2,13 @@
 
 https://cloud.google.com/appengine/docs/python/googlecloudstorageclient/getstarted
 
+#config and install
+
+    pipenv install requests
+
 #Run with
 
-    dev_appserver.py --default_gcs_bucket_name gcp-filebox.appspot.com app.yaml
+    dev_appserver.py --default_gcs_bucket_name gae-files-app.appspot.com app.yaml
 
 #Features
 * Upload file feature that stores files in Google Cloud Storage.

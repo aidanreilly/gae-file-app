@@ -55,17 +55,12 @@
 		{% endif %}
 
 		<h3>Current files</h3>
-			{% for file in files %}
-			<br>
-			<small>[<i>{{ file.date.ctime }}</i>]</small>
-			<b>
-				{% if file.author %}
-				<code>{{ file.author.nickname }}</code>
-				{% else %}
-				<i>anonymous</i>
-				{% endif %}
-			</b>
-			{{ file.content|escape }}
-			{% endfor %}
+  <table>
+    <tr align="left"><th>Filename</th><td>{{file_info.blob_info.filename}}</td></tr>
+    <tr align="left"><th>Size</th><td>{{file_info.blob.size}}</td></tr>
+    <tr align="left"><th>Uploaded</th><td>{{file_info.uploaded_at}}</td></tr>
+    <tr align="left"><th>Uploaded by</th><td>{{file_info.uploaded_by}}</td></tr>
+    <tr align="left"><th>Content Type</th><td>{{file_info.blob.content_type}}</td></tr>
+  </table>
 
 

@@ -74,6 +74,7 @@ class MainPage(webapp2.RequestHandler):
             # [END upload_form]
         tmpl = path.join( path.dirname(__file__), "html/footer.html" )
 
+
     #[START list_bucket]
     def list_bucket(self, bucket):
         #self.response.write('Listbucket result:\n')
@@ -95,6 +96,7 @@ class MainPage(webapp2.RequestHandler):
 # [START upload_handler]
 class FileUploadHandler(blobstore_handlers.BlobstoreUploadHandler):
     def post(self):
+        blob_info = self.get_uploads()[0]
         user=users.get_current_user().user_id()
         if user:
             files = FileInfo.all()
