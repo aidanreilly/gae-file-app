@@ -1,12 +1,7 @@
 #Simple GCE app to handle files on Google cloud storage 
-#
-#note to self: try out some of the other demos blob, guestbook etc.
-#C:\git\python-docs-samples\appengine\standard\blobstore\api for file uploads
-#for reading the store, 
 #to deploy gcloud app deploy app.yaml
 #datastore (relational db) and cloudstore (for actual files)
 #
-#[START imports]
 from google.appengine.ext import db
 from google.appengine.ext import blobstore
 from google.appengine.ext import ndb
@@ -21,7 +16,7 @@ import cgi
 import urllib
 from os import path
 import cloudstorage as gcs
-#[END imports]
+
 
 #[START retries]
 my_default_retry_params = gcs.RetryParams(initial_delay=0.2,
@@ -31,31 +26,40 @@ my_default_retry_params = gcs.RetryParams(initial_delay=0.2,
 gcs.set_default_retry_params(my_default_retry_params)
 #[END retries]
 
-# This datastore model keeps track of which users uploaded which photos.
-class UserFile(ndb.Model):
-    user = ndb.StringProperty()
-    blob_key = ndb.BlobKeyProperty()
+#store objects in the db as blobs
+class FileInfo(db.Model):
+    blob = blobstore.BlobReferenceProperty(required=True)
+    uploaded_by = db.UserProperty(required=True)
+    uploaded_at = db.DateTimeProperty(required=True, auto_now_add=True)
 
 class MainPage(webapp2.RequestHandler):
     def get(self):
+        #creates the bucket
         bucket_name = os.environ.get('gae-file-app.appspot.com', app_identity.get_default_gcs_bucket_name())
+        #holds the bucket name that we just created
         bucket = '/' + bucket_name
         # [START upload_url]
         upload_url = blobstore.create_upload_url('/upload_file')
         # [END upload_url]
+        # gets current user
         user = users.get_current_user()
+        files =  bucket #this is incorrect
         #how can i query the db and return list?
-        #files = UserFile.list()
-        #how do I display a clickable list of objects? 
-        #files = UserFile("-date").fetch(10)
+        #this should pull the files info in the bucket
+        dl = self.request.get_all('file')
+        for blob in dl:
+            blob_url = str(urllib.unquote(blob))
+            blob_info = blobstore.BlobInfo.get(blob_url)
+            self.send_blob(blob_info, save_as=blob_info.filename)
         context = {
           'user': user,
-          #'files':  files,
+          'files':  files,
           'login':  users.create_login_url(self.request.uri),
           'logout': users.create_logout_url(self.request.uri),
           }
 
         tmpl = path.join( path.dirname(__file__), "html/index.html" )
+        #write the html
         self.response.out.write( template.render(tmpl, context) )
         #how to return the objects in the store???
         #show the contents of the bucket
@@ -77,7 +81,6 @@ class MainPage(webapp2.RequestHandler):
 
     #[START list_bucket]
     def list_bucket(self, bucket):
-        #self.response.write('Listbucket result:\n')
         page_size = 1
         stats = gcs.listbucket(bucket, max_keys=page_size)
         while True:
@@ -96,14 +99,13 @@ class MainPage(webapp2.RequestHandler):
 # [START upload_handler]
 class FileUploadHandler(blobstore_handlers.BlobstoreUploadHandler):
     def post(self):
-        blob_info = self.get_uploads()[0]
+        
         user=users.get_current_user().user_id()
-        if user:
-            files = FileInfo.all()
-            html = html + template.render('html/index.html', {'file':file.blob, 'key':file.blob.key()})
-            upload_url = blobstore.create_upload_url('/upload')
-            html = html + template.render('html/footer.html', {'upload_url':upload_url})
-            self.redirect(users.create_login_url(self.request.uri))
+        html = html + template.render('html/index.html', {'file':file.blob, 'key':file.blob.key()})
+        upload_url = blobstore.create_upload_url('/upload')
+        html = html + template.render('html/footer.html', {'upload_url':upload_url})
+        self.redirect(users.create_login_url(self.request.uri)) 
+        self.redirect("/")
     
 # [START download_handler]
 class FileDownloadHandler(blobstore_handlers.BlobstoreDownloadHandler):
